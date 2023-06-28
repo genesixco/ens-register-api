@@ -42,5 +42,5 @@ jobs:
               docker pull 0xjsa/ens-register-api:latest
               docker stop ens-register-api-container || true
               docker rm ens-register-api-container || true
-              docker run -d --name ens-register-api-container -p 8000:8000 0xjsa/ens-register-api:latest
+              docker run -d --name ens-register-api-container -p 8000:8000 --env-file /home/ec2-user/.env 0xjsa/ens-register-api:latest
             
