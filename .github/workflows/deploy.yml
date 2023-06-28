@@ -31,8 +31,8 @@ jobs:
           push: true
           tags: 0xjsa/ens-register-api:latest
 
-      - name: SSH into EC2
-        uses: jakejarvis/ssh-run@master
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
