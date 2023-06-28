@@ -38,7 +38,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
-          run: |
+          script: |
               echo "${{ secrets.DOCKERHUB_TOKEN }}" | DOCKER_USERNAME=${{ secrets.DOCKERHUB_USERNAME }} docker login --username $DOCKER_USERNAME --password-stdin
               docker pull 0xjsa/ens-register-api:latest
               docker stop ens-register-api-container || true
