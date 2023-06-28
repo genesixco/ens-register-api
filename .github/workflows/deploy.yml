@@ -39,7 +39,7 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           port: 22
           script: |
-            docker pull 0xjsa/ens-register-api:latest
+            docker pull \\0xjsa/ens-register-api:latest
             docker stop ens-register-api-container || true
             docker rm ens-register-api-container || true
-            docker run -d --name ens-register-api-container -p 8000:8000 0xjsa/ens-register-api:latest
+            docker run -d --name ens-register-api-container -p 8000:8000 \\0xjsa/ens-register-api:latest
