@@ -47,7 +47,7 @@ app.use(router)
 
 const port = process.env.PORT;
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.ENV === 'production') {
 
     const keyPath = '/certificates/genesix_xyz.p7b';
     const certPath = '/certificates/genesix_xyz.crt';
