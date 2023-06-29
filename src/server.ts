@@ -4,6 +4,9 @@ import { basicAuthMiddleware } from './middlewareAuth';
 import { makeCommitment, register } from './ensUtils';
 import dotenv from 'dotenv';
 
+import https from 'https';
+import fs from 'fs';
+
 dotenv.config();
 
 const app: Express = express();
@@ -20,29 +23,45 @@ router.get('/api/v1/public/a', (req: Request, res: Response) => {
 
 router.post('/api/v1/private/commitment', async (req: Request, res: Response) => {
 
-    const {name, owner} = req.body
+    const { name, owner } = req.body
 
-    const {salt, tx} = await makeCommitment(name,owner)
-    
-    res.status(200).json({salt: salt, tx: tx});
+    const { salt, tx } = await makeCommitment(name, owner)
+
+    res.status(200).json({ salt: salt, tx: tx });
 });
 
 router.get('/api/v1/private/register', async (req: Request, res: Response) => {
-    
-    const {name, owner, duration, salt} = req.body
+
+    const { name, owner, duration, salt } = req.body
 
     if (!name || !owner || !duration || !salt) {
         return res.status(400).json({ error: 'Faltan parámetros requeridos' });
     }
 
     const tx = await register(name, owner, duration, salt)
-    
-    res.status(200).send({tx: tx});
+
+    res.status(200).send({ tx: tx });
 });
 
 app.use(router)
 
 const port = process.env.PORT;
-app.listen(port, () => {
-    console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
-});
+
+if (process.env.NODE_ENV === 'production') {
+
+    const keyPath = '/certificates/archivo.key';
+    const certPath = '/certificates/archivo.crt';
+
+    const options = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+    };
+
+    https.createServer(options, app).listen(port, () => {
+        console.log(`⚡️[server]: Server is running at http://localhost:${port} (HTTPS)`);
+    });
+} else {
+    app.listen(port, () => {
+        console.log(`⚡️[server]: Server is running at http://localhost:${port} (HTTP)`);
+    });
+}
