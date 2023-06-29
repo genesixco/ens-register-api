@@ -49,12 +49,14 @@ const port = process.env.PORT;
 
 if (process.env.ENV === 'production') {
 
-    const keyPath = '/certificates/genesix_xyz.pem';
-    const certPath = '/certificates/genesix_xyz.crt';
+    const keyPath = '/certificates/genesix.xyz.key'
+    const certPath = '/certificates/genesix_xyz.crt'
+    const caPath = '/certificates/genesix_xyz.ca-bundle'
 
     const options = {
         key: fs.readFileSync(keyPath),
         cert: fs.readFileSync(certPath),
+        ca: fs.readFileSync(caPath)
     };
 
     https.createServer(options, app).listen(port, () => {
