@@ -49,7 +49,7 @@ const port = process.env.PORT;
 
 if (process.env.ENV === 'production') {
 
-    const keyPath = '/certificates/genesix_xyz.p7b';
+    const keyPath = '/certificates/genesix_xyz.pem';
     const certPath = '/certificates/genesix_xyz.crt';
 
     const options = {
