@@ -8,8 +8,7 @@
     "start": "node build/src/server.js",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q build/src/server.js\"",
     "docker:build": "docker build . -t ens-register-api",
-    "docker:run:dev": "docker run --env-file .env -p 443:443 -d ens-register-api",
-    "docker:run:prod": "docker run --env-file .env -p 443:443 -d ens-register-api"
+    "docker:run": "docker run --env-file .env -p 8000:8000 -d ens-register-api",
   },
   "keywords": [],
   "author": "",

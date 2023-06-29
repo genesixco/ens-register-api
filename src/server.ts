@@ -49,8 +49,8 @@ const port = process.env.PORT;
 
 if (process.env.NODE_ENV === 'production') {
 
-    const keyPath = '/certificates/archivo.key';
-    const certPath = '/certificates/archivo.crt';
+    const keyPath = '/certificates/genesix_xyz.p7b';
+    const certPath = '/certificates/genesix_xyz.crt';
 
     const options = {
         key: fs.readFileSync(keyPath),
