@@ -15,7 +15,7 @@ const ensRegistryController = new ethers.Contract(ETHRegistrarControllerAddr, Et
 export async function makeCommitment(name: string, address: string) {
     try {
 
-        const domainOwner = await ensRegistry.owner(ethers.namehash(name))
+        const domainOwner = await ensRegistry.owner(ethers.namehash(name+".eth"))
 
         if (domainOwner === ethers.ZeroAddress) {
             const node = ethers.namehash("resolver.eth");
