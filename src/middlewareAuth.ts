@@ -5,7 +5,7 @@ export const basicAuthMiddleware = (req, res, next) => {
       // Extrae el usuario y la contraseña de las credenciales
       const [username, password] = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
   
-      if (username === 'admin' && password === 'password') {
+      if (username === process.env.USERNAME && password === process.env.PASSWORD) {
         next();
       } else {
         res.status(401).send('Unauthorized: Invalid credentials.');
