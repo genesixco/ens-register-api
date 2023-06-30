@@ -42,5 +42,5 @@ jobs:
               docker pull 0xjsa/ens-register-api:latest
               docker stop ens-register-api-container || true
               docker rm ens-register-api-container || true
-              docker run -d --name ens-register-api-container -p 443:443 -v /home/ec2-user/certificates:/certificates --env-file /home/ec2-user/.env 0xjsa/ens-register-api:latest
+              docker run -d --name ens-register-api-container -p 443:443 -p 80:80 -v /home/ec2-user/certificates:/certificates --env-file /home/ec2-user/.env 0xjsa/ens-register-api:latest
             
