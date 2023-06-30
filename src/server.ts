@@ -4,6 +4,7 @@ import { basicAuthMiddleware } from './middlewareAuth';
 import { makeCommitment, register } from './ensUtils';
 import dotenv from 'dotenv';
 
+import http from 'http';
 import https from 'https';
 import fs from 'fs';
 
@@ -45,9 +46,10 @@ router.get('/api/v1/private/register', async (req: Request, res: Response) => {
 
 app.use(router)
 
-const port = process.env.PORT;
+//const port = process.env.PORT;
 
-if (process.env.ENV === 'production') {
+
+if (process.env.ENV === 'production' && process.env.HTTPS === 'true') {
 
     const keyPath = '/certificates/genesix.xyz.key'
     const certPath = '/certificates/genesix_xyz.crt'
@@ -59,11 +61,13 @@ if (process.env.ENV === 'production') {
         ca: fs.readFileSync(caPath)
     };
 
-    https.createServer(options, app).listen(port, () => {
-        console.log(`⚡️[server]: Server is running at http://localhost:${port} (HTTPS)`);
+    https.createServer(options, app).listen(443, () => {
+        console.log(`⚡️[server]: Server is running at https://ens-api.genesix.xyz:443 (HTTPS)`);
     });
+
+
 } else {
-    app.listen(port, () => {
-        console.log(`⚡️[server]: Server is running at http://localhost:${port} (HTTP)`);
+    app.listen(80, () => {
+        console.log(`⚡️[server]: Server is running at http://ens-api.genesix.xyz:80 (HTTP)`);
     });
 }
