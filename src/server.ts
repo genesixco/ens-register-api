@@ -1,7 +1,7 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import { basicAuthMiddleware } from './middlewareAuth';
-import { makeCommitment, register } from './ensUtils';
+import { makeCommitment, register, checkAvailability, setAddress, getRegisteredENS } from './ensUtils';
 import dotenv from 'dotenv';
 
 import https from 'https';
@@ -19,7 +19,7 @@ router.all('/api/v1/private/*', basicAuthMiddleware)
 
 router.get('/api/v1/public/a', (req: Request, res: Response) => {
     res.send('Este si es public');
-});
+})
 
 router.post('/api/v1/private/commitment', async (req: Request, res: Response) => {
 
@@ -41,7 +41,7 @@ router.post('/api/v1/private/commitment', async (req: Request, res: Response) =>
         console.error(error);
         res.status(500).json({ error: 'An error occurred on the server' });
     }
-});
+})
 
 
 router.post('/api/v1/private/register', async (req: Request, res: Response) => {
@@ -61,7 +61,67 @@ router.post('/api/v1/private/register', async (req: Request, res: Response) => {
         console.error(error);
         res.status(500).json({ error: 'An error occurred on the server' });
     }
-});
+})
+
+router.get('/api/v1/private/check', async(req: Request, res: Response)=>{
+    try{
+
+        const name = req.query.name as string
+
+        const available:boolean = await checkAvailability(name)
+
+        res.status(200).send({ available: available });
+
+    } catch (error){
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred on the server' });
+    }
+})
+
+
+router.post('/api/v1/private/setAddress', async(req: Request, res: Response)=>{
+    try{
+
+        const { name, newAddress } = req.body
+
+        if (!name || !newAddress) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        const result = await setAddress(name, newAddress)
+
+        if(result && result.error){
+            return res.status(400).json({error: result.error})
+        }
+
+        return res.status(200).send({ tx: result.tx });
+
+
+    } catch(error){
+        console.error(error)
+        res.status(500).json({ error: 'An error ocurred on the server' })
+    }
+})
+
+router.get('/api/v1/private/ens', async(req: Request, res: Response)=>{
+    try{
+
+        const first = req.query.first
+        if (!first ) {
+            return res.status(400).json({ error: 'Missing first parameter' });
+        }
+
+        const result = await getRegisteredENS(Number(first))
+
+        return res.status(200).send({ result: result });
+
+
+
+    } catch(error){
+        console.error(error)
+        res.status(500).json({ error: 'An error ocurred on the server' })
+    }
+})
 
 
 app.use(router)
@@ -71,9 +131,9 @@ app.use(router)
 if (process.env.ENV === 'production') {
 
     if(process.env.HTTPS === 'true'){
-        const keyPath = '/certificates/genesix.xyz.key'
-        const certPath = '/certificates/genesix_xyz.crt'
-        const caPath = '/certificates/genesix_xyz.ca-bundle'
+        const keyPath = '/certificates/ens-api.genesix.xyz.key'
+        const certPath = '/certificates/ens-api_genesix_xyz.crt'
+        const caPath = '/certificates/ens-api_genesix_xyz.ca-bundle'
     
         const options = {
             key: fs.readFileSync(keyPath),

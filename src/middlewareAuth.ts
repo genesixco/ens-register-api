@@ -4,7 +4,7 @@ export const basicAuthMiddleware = (req, res, next) => {
     if (authHeader) {
       // Extrae el usuario y la contraseña de las credenciales
       const [username, password] = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-      
+
       if (username === process.env.USERNAME && password === process.env.PASSWORD) {
         next();
       } else {
