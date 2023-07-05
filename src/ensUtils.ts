@@ -3,6 +3,7 @@ import { ethers } from 'ethers'
 import * as crypto from 'crypto'
 import { ENSRegistry } from '@ensdomains/ens-contracts'
 import { address as ETHRegistrarControllerAddr, abi as EthRegistrarControllerAbi } from '../abis/ETHRegistrarController.json'
+import { address as ETHRegistrarAddr, abi as EthRegistrarAbi } from '../abis/ETHRegistrar.json'
 import { abi as ENSResolverAbi } from '../abis/ENSResolver.json'
 import axios from 'axios'
 
@@ -12,8 +13,9 @@ const provider = new ethers.AlchemyProvider(process.env.ALCHEMY_NETWORK, process
 const wallet = new ethers.Wallet(process.env.WALLET_KEY!, provider)
 const walletWithProvider = wallet.connect(provider)
 
-const ensRegistry = new ethers.Contract(process.env.ENS_REGISTRY_ADDRESS!, ENSRegistry, provider)
-const ensRegistryController = new ethers.Contract(ETHRegistrarControllerAddr, EthRegistrarControllerAbi, walletWithProvider)
+const ensRegistry = new ethers.Contract(process.env.ENS_REGISTRY_ADDRESS!, ENSRegistry, walletWithProvider)
+const ethRegistrar = new ethers.Contract(ETHRegistrarAddr, EthRegistrarAbi, walletWithProvider)
+const ethRegistryController = new ethers.Contract(ETHRegistrarControllerAddr, EthRegistrarControllerAbi, walletWithProvider)
 
 
 export async function makeCommitment(name: string, address: string) {
@@ -30,8 +32,8 @@ export async function makeCommitment(name: string, address: string) {
             const salt = "0x" + Array.from(random).map(b => b.toString(16).padStart(2, "0")).join("");
 
             // Submit our commitment to the smart contract
-            const commitment = await ensRegistryController.makeCommitmentWithConfig(name, wallet.address, salt, addrResolver, address);
-            const tx = await ensRegistryController.commit(commitment);
+            const commitment = await ethRegistryController.makeCommitmentWithConfig(name, wallet.address, salt, addrResolver, address);
+            const tx = await ethRegistryController.commit(commitment);
 
             console.info(`Function: makeCommitment() Name: ${name}, Wallet: ${wallet.address}, Salt: ${salt}, Resolver: ${addrResolver}, Address: ${address}`)
 
@@ -52,12 +54,12 @@ export async function register(name: string, duration: number, salt: string, add
     try {
 
         // Add 10% to account for price fluctuation; the difference is refunded.
-        const price = BigInt((await ensRegistryController.rentPrice(name, duration))) * BigInt(11) / BigInt(10);
+        const price = BigInt((await ethRegistryController.rentPrice(name, duration))) * BigInt(11) / BigInt(10);
 
         const node = ethers.namehash("resolver.eth");
         const addrResolver = await ensRegistry.resolver(node)
 
-        const tx = await ensRegistryController.registerWithConfig(name, wallet.address, duration, salt, addrResolver, address, { value: price })
+        const tx = await ethRegistryController.registerWithConfig(name, wallet.address, duration, salt, addrResolver, address, { value: price })
 
         console.info(`Function: register(), Name: ${name}, Wallet: ${wallet.address}, Duration: ${duration}, Salt: ${salt}, Resolver: ${addrResolver}, Address: ${address}`)
 
@@ -73,7 +75,7 @@ export async function register(name: string, duration: number, salt: string, add
 export async function checkAvailability(name: string): Promise<boolean> {
     try {
 
-        const available = await ensRegistryController.available(name)
+        const available = await ethRegistryController.available(name)
 
         return available as boolean
 
@@ -99,7 +101,7 @@ export async function setAddress(name: string, newAddress: string): Promise<SetA
             return { error: "New Addres is not a valid ethereum address" }
         }
 
-        const available = await ensRegistryController.available(name)
+        const available = await ethRegistryController.available(name)
 
         if (available) {
             return { error: "This ENS is not registered" }
@@ -132,11 +134,11 @@ export async function setAddress(name: string, newAddress: string): Promise<SetA
 }
 
 
-export async function getRegisteredENS(first: number) {
+export async function getRegisteredENS() {
 
     const getRegisteredENSQuery = `
         query {
-            domains(first: ${first}, where: {owner: "${wallet.address}"}) {
+            domains(where: {owner: "${wallet.address}"}) {
               id
               name
               labelName
@@ -146,13 +148,88 @@ export async function getRegisteredENS(first: number) {
         `
     try {
 
-        const {data} = await axios.post(`https://api.thegraph.com/subgraphs/name/ensdomains/ens`, { query: getRegisteredENSQuery });
+        const { data } = await axios.post(`https://api.thegraph.com/subgraphs/name/ensdomains/ens`, { query: getRegisteredENSQuery });
 
-        console.log('Subgraph data:', data.data);
         return data.data;
 
     } catch (error) {
         console.error('Error fetching data:', error);
+        throw error;
+    }
+
+}
+
+
+export async function getEnsInfo(name: string) {
+
+    const getEnsInfo = `
+        query {
+            domains(where: {labelName: "${name}"}) {
+            id
+            name
+            labelName
+            labelhash
+            expiryDate
+            }
+        }
+      `
+
+    try {
+
+        const { data } = await axios.post(`https://api.thegraph.com/subgraphs/name/ensdomains/ens`, { query: getEnsInfo });
+
+        return data.data;
+
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        throw error;
+    }
+}
+
+export async function transferEns(name: string, newOwner: string) {
+
+    try {
+  
+        const labelNameHash = ethers.keccak256(ethers.toUtf8Bytes(name))
+        const tokenId = ethers.toBigInt(labelNameHash).toString()
+
+        console.log(tokenId)
+
+        const tokenOwner = await ethRegistrar.ownerOf(tokenId)
+
+        if (tokenOwner !== wallet.address) {
+            return { error: "This ENS is not our own" }
+        }
+
+        const tx = await ethRegistrar.safeTransferFrom(wallet.address, newOwner, tokenId)
+
+        return { tx: tx.hash }
+
+    } catch (error) {
+        console.error(`Function: transferEns() Name: ${name}, address: ${newOwner}`)
+        throw error;
+    }
+
+}
+
+
+export async function transferRegister(name: string, newOwner: string) {
+
+    try {
+
+        const domainOwner = await ensRegistry.owner(ethers.namehash(name + ".eth"))
+
+        if (domainOwner !== wallet.address) {
+            return { error: "This Domain is not our own" }
+        }
+
+        const nodeName = ethers.namehash(name + '.eth')
+        const tx = await ensRegistry.setOwner(nodeName, newOwner)
+
+        return { tx: tx.hash }
+
+    } catch (error) {
+        console.error(`Function: transferEns() Name: ${name}, address: ${newOwner}`)
         throw error;
     }
 

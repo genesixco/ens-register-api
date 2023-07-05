@@ -1,9 +1,10 @@
 import express, { Express, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-import { basicAuthMiddleware } from './middlewareAuth';
-import { makeCommitment, register, checkAvailability, setAddress, getRegisteredENS } from './ensUtils';
+import publicRoutes from './routes/publicRoutes';
+import privateRoutes from './routes/privateRoutes';
+import swaggerUi from 'swagger-ui-express';
+import specs from './swagger'
 import dotenv from 'dotenv';
-
 import https from 'https';
 import fs from 'fs';
 
@@ -13,119 +14,9 @@ const app: Express = express();
 app.use(cors());
 app.use(express.json())
 
-const router = express.Router();
-
-router.all('/api/v1/private/*', basicAuthMiddleware)
-
-router.get('/api/v1/public/a', (req: Request, res: Response) => {
-    res.send('Este si es public');
-})
-
-router.post('/api/v1/private/commitment', async (req: Request, res: Response) => {
-
-    try {
-        const { name, address } = req.body
-
-        if (!name || !address) {
-            return res.status(400).json({ error: 'Missing required parameters' });
-        }
-
-        const result = await makeCommitment(name, address)
-
-        if (result.available === false) {
-            return res.status(200).json({ available: false });
-        }
-
-        res.status(200).json({ salt: result.salt, tx: result.tx });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred on the server' });
-    }
-})
-
-
-router.post('/api/v1/private/register', async (req: Request, res: Response) => {
-
-    try {
-        const { name, duration, salt, address } = req.body
-
-        if (!name || !duration || !salt || !address) {
-            return res.status(400).json({ error: 'Missing required parameters' });
-        }
-
-        const tx = await register(name, duration, salt, address)
-
-        res.status(200).send({ tx: tx });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred on the server' });
-    }
-})
-
-router.get('/api/v1/private/check', async(req: Request, res: Response)=>{
-    try{
-
-        const name = req.query.name as string
-
-        const available:boolean = await checkAvailability(name)
-
-        res.status(200).send({ available: available });
-
-    } catch (error){
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred on the server' });
-    }
-})
-
-
-router.post('/api/v1/private/setAddress', async(req: Request, res: Response)=>{
-    try{
-
-        const { name, newAddress } = req.body
-
-        if (!name || !newAddress) {
-            return res.status(400).json({ error: 'Missing required parameters' });
-        }
-
-        const result = await setAddress(name, newAddress)
-
-        if(result && result.error){
-            return res.status(400).json({error: result.error})
-        }
-
-        return res.status(200).send({ tx: result.tx });
-
-
-    } catch(error){
-        console.error(error)
-        res.status(500).json({ error: 'An error ocurred on the server' })
-    }
-})
-
-router.get('/api/v1/private/ens', async(req: Request, res: Response)=>{
-    try{
-
-        const first = req.query.first
-        if (!first ) {
-            return res.status(400).json({ error: 'Missing first parameter' });
-        }
-
-        const result = await getRegisteredENS(Number(first))
-
-        return res.status(200).send({ result: result });
-
-
-
-    } catch(error){
-        console.error(error)
-        res.status(500).json({ error: 'An error ocurred on the server' })
-    }
-})
-
-
-app.use(router)
-
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));
+app.use(publicRoutes)
+app.use(privateRoutes)
 
 
 if (process.env.ENV === 'production') {
